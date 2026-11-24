@@ -29,7 +29,7 @@ function App(){
  const saveLock=useRef(false),startLock=useRef(false);
  const checkMode=()=>{setServiceError('');setMode(null);detectMode().then(setMode).catch(e=>setServiceError(e.message));};
  useEffect(checkMode,[]);
- useEffect(()=>{if(session){try{persist({...session,screen,levelId});}catch{setNotice('浏览器存储已满或不可用，请勿刷新；请联系工作人员');}}},[session,screen,levelId]);
+ useEffect(()=>{if(session&&screen!=='welcome'){try{persist({...session,screen,levelId});}catch{setNotice('浏览器存储已满或不可用，请勿刷新；请联系工作人员');}}},[session,screen,levelId]);
  useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(''),6500);return ()=>clearTimeout(timer);},[notice]);
  useEffect(()=>{window.dispatchEvent(new Event('emoji-input-cancel'));setSelected(null);setError('');document.querySelector<HTMLElement>('main')?.focus();},[screen,levelId,modal?.kind]);
  useEffect(()=>{
