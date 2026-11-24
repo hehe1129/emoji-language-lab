@@ -1,0 +1,9 @@
+name = "emoji-language-lab"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "emoji-language-lab"
+database_id = "95c1fe0e-654e-4c0f-9027-a524f859b031"
+migrations_dir = "migrations"
