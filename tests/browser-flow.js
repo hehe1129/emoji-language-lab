@@ -1,12 +1,13 @@
 async page => {
- const base = new URL(page.url()).origin; const checks=[];const assert=(ok,name)=>{if(!ok)throw new Error(name);checks.push(name);console.log('PASS '+name);};
+ const base = 'https://emoji-language-lab.pages.dev'; const checks=[];const assert=(ok,name)=>{if(!ok)throw new Error(name);checks.push(name);console.log('PASS '+name);};
+ const settle=async()=>{await page.waitForFunction(()=>[...document.images].every(i=>i.complete));await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(450);};
  const click=async(name)=>page.getByRole('button',{name,exact:true}).first().click();
  await page.goto(base);
  await page.evaluate(()=>localStorage.clear());await page.reload();
  await click('开始体验');
  await page.getByRole('heading',{name:'从一个梦，出发。'}).waitFor();
  assert(await page.locator('.map-node:not(:disabled)').count()===1,'new session only opens 01');
- await page.setViewportSize({width:1440,height:900});await page.screenshot({path:'C:/Users/20620/Desktop/emoji-language-lab/output/playwright/desktop-map.png'});
+ await page.setViewportSize({width:1440,height:900});
  await page.getByRole('button',{name:/01 夜晚的梦 可进入/}).click();await page.locator('.prompt-banner button').click();
  assert(await page.getByRole('button',{name:'确认提交',exact:true}).isDisabled(),'empty sequence cannot submit');
  await click('添加小猫');await click('添加小猫');await click('添加月亮');
@@ -48,16 +49,19 @@ async page => {
  }
  await page.getByRole('heading',{name:'这就是，你的图形语言。'}).waitFor();
  assert(await page.locator('.review-list article').count()===5,'five completed levels show full personal review');
- s=await page.evaluate(()=>JSON.parse(localStorage.getItem('emoji-language-lab.session.v1')));const savedId=s.works[0].id;
- await page.screenshot({path:'C:/Users/20620/Desktop/emoji-language-lab/output/playwright/review.png'});
+ s=await page.evaluate(()=>JSON.parse(localStorage.getItem('emoji-language-lab.session.v1')));const savedId=s.works[0].id;await page.evaluate(s=>globalThis.__emojiReview=s,s);
+ await page.locator('.toast').waitFor({state:'hidden',timeout:9000});
  await click('结束本次体验');await click('结束并重置');await click('开始体验');await page.getByRole('heading',{name:'从一个梦，出发。'}).waitFor();
  assert(await page.locator('.map-node:not(:disabled)').count()===1,'end and new session reset progression');
  assert((await (await page.request.get(base+'/api/works?level=01')).json()).works.some(w=>w.id===savedId),'public works survive end/reset');
- await page.setViewportSize({width:390,height:844});await page.screenshot({path:'C:/Users/20620/Desktop/emoji-language-lab/output/playwright/mobile-map.png'});
+ await page.setViewportSize({width:390,height:844});
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'mobile map has no horizontal overflow');
- await page.setViewportSize({width:768,height:1024});await page.screenshot({path:'C:/Users/20620/Desktop/emoji-language-lab/output/playwright/tablet-map.png'});
+ await page.setViewportSize({width:768,height:1024});
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'tablet map has no horizontal overflow');
- console.log(JSON.stringify({checks:checks.length,result:'passed',details:checks}));
+ return {checks:checks.length,result:'passed',details:checks};
 }
+
+
+
 
 

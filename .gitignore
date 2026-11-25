@@ -6,3 +6,5 @@ dist/
 output/
 *.tsbuildinfo
 .impeccable/review/
+.playwright-cli/
+.taste-skill/inspect/

@@ -8,7 +8,7 @@ export function useInput(actions:Actions){
  const [ghost,setGhost]=useState<{id:EmojiId;x:number;y:number}|null>(null);
  const [insert,setInsert]=useState<number|null>(null);
  useEffect(()=>{
-  let hold:{drag:Drag|null;target:HTMLElement;x:number;y:number;at:number;moved:boolean;gesture:boolean}|null=null;
+  let hold:{drag:Drag|null;target:HTMLElement;x:number;y:number;at:number;moved:boolean;maxTravel:number;gesture:boolean}|null=null;
   let suppressPoint:{x:number;y:number;at:number}|null=null;
   const cancel=()=>{hold=null;setGhost(null);setInsert(null);ref.current.cancel();};
   const slot=(x:number,y:number)=>{
@@ -22,15 +22,15 @@ export function useInput(actions:Actions){
    const id=target.dataset.asset||target.dataset.emoji;
    const drag:Drag|null=target.hasAttribute('data-asset')?{kind:'asset',id:id as EmojiId}:target.hasAttribute('data-item')?{kind:'item',id:id as EmojiId,index:Number(target.dataset.item)}:null;
    if(drag)e.preventDefault();
-   hold={drag,target,x:e.clientX,y:e.clientY,at:performance.now(),moved:false,gesture:e.pointerType==='gesture'};
+   hold={drag,target,x:e.clientX,y:e.clientY,at:performance.now(),moved:false,maxTravel:0,gesture:e.pointerType==='gesture'};
   };
-  const move=(e:PointerEvent)=>{if(!hold)return;const distance=Math.hypot(e.clientX-hold.x,e.clientY-hold.y);if(distance>gestureConfig.dragPx)hold.moved=true;
+  const move=(e:PointerEvent)=>{if(!hold)return;const distance=Math.hypot(e.clientX-hold.x,e.clientY-hold.y);hold.maxTravel=Math.max(hold.maxTravel,distance);if(distance>gestureConfig.dragPx)hold.moved=true;
    if(hold.drag&&hold.moved){e.preventDefault();if(e.pointerType!=='gesture'){try{document.documentElement.setPointerCapture(e.pointerId);}catch{}}setGhost({id:hold.drag.id,x:e.clientX,y:e.clientY});setInsert(slot(e.clientX,e.clientY));}
   };
   const up=(e:PointerEvent)=>{
    if(!hold)return;const h=hold;hold=null;setGhost(null);setInsert(null);
    if(h.drag&&h.moved){suppressPoint={x:e.clientX,y:e.clientY,at:performance.now()};const hit=document.elementFromPoint(e.clientX,e.clientY);if(hit?.closest('[data-trash]'))ref.current.remove(h.drag);else{const index=slot(e.clientX,e.clientY);if(index!==null)ref.current.drop(h.drag,index);}return;}
-   if(h.gesture&&Math.hypot(e.clientX-h.x,e.clientY-h.y)<=gestureConfig.stableClickPx&&performance.now()-h.at>=gestureConfig.clickMinMs){
+   if(h.gesture&&h.maxTravel<=gestureConfig.stableClickPx&&Math.hypot(e.clientX-h.x,e.clientY-h.y)<=gestureConfig.stableClickPx&&performance.now()-h.at>=gestureConfig.clickMinMs){
     const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('button,a');if(target===h.target)h.target.click();
    }
   };

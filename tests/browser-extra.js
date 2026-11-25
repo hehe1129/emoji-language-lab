@@ -1,0 +1,58 @@
+async page => {
+ const base='https://emoji-language-lab.pages.dev';const checks=[];
+ const assert=(ok,name)=>{if(!ok)throw new Error(name);checks.push(name);};
+ const browser=page.context().browser();const aContext=await browser.newContext({viewport:{width:1920,height:1080}});const bContext=await browser.newContext({viewport:{width:1440,height:900}});
+ const a=await aContext.newPage(),b=await bContext.newPage();
+ const point=async(el)=>{await el.scrollIntoViewIfNeeded();const r=await el.boundingBox();if(!r)throw new Error('target invisible');return {x:r.x+r.width/2,y:r.y+r.height/2};};
+ const event=async(p,type,xy)=>p.evaluate(({type,xy})=>{(document.elementFromPoint(xy.x,xy.y)||document.body).dispatchEvent(new PointerEvent(type,{bubbles:true,clientX:xy.x,clientY:xy.y,pointerType:'gesture',pointerId:99,button:0,buttons:type==='pointerup'?0:1}));},{type,xy});
+ const pinch=async(el)=>{const xy=await point(el);await event(a,'pointerdown',xy);await a.waitForTimeout(165);await event(a,'pointerup',xy);};
+ const button=(name)=>a.getByRole('button',{name,exact:true}).first();
+ await a.goto(base);await pinch(button('开始体验'));await a.getByRole('heading',{name:'从一个梦，出发。'}).waitFor();
+ await pinch(a.locator('.map-node.available'));await pinch(a.locator('.prompt-banner button'));
+ await pinch(button('添加小猫'));await pinch(button('添加小猫'));
+ assert(await a.locator('[data-item]').count()===2,'gesture pinch-release clicks create repeated assets');
+ const from=await point(a.locator('[data-asset="moon"]')),to=await point(a.locator('[data-sequence]'));
+ await event(a,'pointerdown',from);await event(a,'pointermove',to);await event(a,'pointerup',to);
+ assert(await a.locator('[data-item]').count()===3,'gesture drag uses same insertion rules');
+ const before=await a.locator('[data-item]').count();const item=await point(a.locator('[data-item="0"]')),trash=await point(a.locator('[data-trash]'));
+ await event(a,'pointerdown',item);await event(a,'pointermove',trash);await a.evaluate(()=>window.dispatchEvent(new Event('blur')));await event(a,'pointerup',trash);
+ assert(await a.locator('[data-item]').count()===before,'blur cancels gesture grab without deleting');
+ await event(a,'pointerdown',item);await event(a,'pointermove',trash);await event(a,'pointerup',trash);
+ assert(await a.locator('[data-item]').count()===before-1,'gesture drag deletes only on completed drop');
+ const dragAsset=await point(a.locator('[data-asset="stars"]')),submit=await point(button('确认提交'));
+ await event(a,'pointerdown',dragAsset);await event(a,'pointermove',submit);await a.waitForTimeout(165);await event(a,'pointerup',submit);
+ assert(await a.getByRole('dialog').count()===0,'drag passing submit button does not click it');
+ await event(a,'pointerdown',submit);await event(a,'pointermove',{x:submit.x-100,y:submit.y-80});await event(a,'pointermove',submit);await a.waitForTimeout(165);await event(a,'pointerup',submit);
+ assert(await a.getByRole('dialog').count()===0,'unstable pinch returning to button does not click');
+ await pinch(button('确认提交'));assert(await a.getByRole('dialog').count()===1,'gesture opens confirmation');
+ assert((await a.evaluate(()=>JSON.parse(localStorage.getItem('emoji-language-lab.session.v1')).completed)).length===0,'gesture confirmation opening does not unlock');
+ await pinch(button('确认收录'));await a.getByRole('heading',{name:'你的理解，已被收录。'}).waitFor();
+ const saved=await a.evaluate(()=>JSON.parse(localStorage.getItem('emoji-language-lab.session.v1')).works[0]);
+ assert(!!saved.id,'gesture confirmation saves public work');
+ await b.goto(base);await b.getByRole('button',{name:'开始体验',exact:true}).click();await b.locator('.map-node.available').click();
+ await b.locator('.work').first().waitFor();
+ const body=await b.evaluate(async()=>await (await fetch('/api/works?level=01')).json());
+ assert(body.works.some(w=>w.id===saved.id),'independent browser session B reads session A public work');
+ const first=await b.locator('.work').first().locator('.work-sequence img').evaluateAll(imgs=>imgs.map(i=>i.getAttribute('src')));
+ assert(first.length===saved.sequence.length,'shared public work renders in independent browser UI');
+ const bSession=await b.evaluate(()=>JSON.parse(localStorage.getItem('emoji-language-lab.session.v1')));
+ assert(bSession.completed.length===0,'public sharing does not share private completion');
+ if(await b.getByRole('button',{name:'下一页',exact:true}).isEnabled()){await b.getByRole('button',{name:'下一页',exact:true}).click();await b.locator('.pagination').getByText(/第 2/).waitFor();assert(true,'public gallery pagination works');}
+ await pinch(button('返回探索地图'));await pinch(button('结束体验'));await pinch(button('结束并重置'));await a.getByRole('button',{name:'开始体验',exact:true}).waitFor();
+ assert(await a.evaluate(()=>localStorage.getItem('emoji-language-lab.session.v1'))===null,'gesture can navigate and end/reset entire experience');
+ await b.evaluate(()=>localStorage.clear());await b.reload();
+ const resource=await b.evaluate(async()=>{
+  const html=await (await fetch('/')).text();const script=html.match(/src="([^"]+\/index-[^"]+\.js)"/)[1];const code=await (await fetch(script)).text();const file=code.match(/vision_bundle-[A-Za-z0-9_-]+\.js/)[0];
+  const {FilesetResolver,HandLandmarker}=await import('/assets/'+file);
+  const wasm=await FilesetResolver.forVisionTasks('/vision/wasm');
+  const model=await HandLandmarker.createFromOptions(wasm,{baseOptions:{modelAssetPath:'/vision/hand_landmarker.task',delegate:'CPU'},runningMode:'IMAGE',numHands:1});
+  const image=new Image();image.src='/emoji/1f431.svg';await image.decode();const canvas=document.createElement('canvas');canvas.width=256;canvas.height=256;canvas.getContext('2d').drawImage(image,0,0,256,256);const result=model.detect(canvas);model.close();return {inferenceCompleted:true,hands:result.landmarks.length};
+ });
+ assert(resource.inferenceCompleted&&resource.hands===0,'self-hosted MediaPipe WASM/model load and infer in production browser');
+ await b.evaluate(()=>{navigator.mediaDevices.getUserMedia=()=>Promise.reject(new DOMException('denied','NotAllowedError'));});
+ await b.getByRole('button',{name:'启用摄像头',exact:true}).click();await b.getByRole('status').filter({hasText:'摄像头权限未开启'}).waitFor();
+ assert(true,'camera permission refusal has usable mouse fallback feedback');
+ await b.getByRole('button',{name:'关闭摄像头',exact:true}).first().click();
+ await aContext.close();await bContext.close();
+ return {checks:checks.length,result:'passed',details:checks,physicalCamera:'not tested; synthetic input and model inference only'};
+}
