@@ -1,7 +1,7 @@
 async page => {
- const base = 'https://emoji-language-lab.pages.dev'; const checks=[];const assert=(ok,name)=>{if(!ok)throw new Error(name);checks.push(name);console.log('PASS '+name);};
+ page.setDefaultTimeout(15000);page.setDefaultNavigationTimeout(30000); const base = 'https://emoji-language-lab.pages.dev'; const checks=[];const assert=(ok,name)=>{if(!ok)throw new Error(name);checks.push(name);console.log('PASS '+name);};
  const settle=async()=>{await page.waitForFunction(()=>[...document.images].every(i=>i.complete));await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(450);};
- const click=async(name)=>page.getByRole('button',{name,exact:true}).first().click();
+ const click=async(name)=>{await page.evaluate(name=>globalThis.__stage=name,name);await page.getByRole('button',{name,exact:true}).first().click();};
  await page.goto(base);
  await page.evaluate(()=>localStorage.clear());await page.reload();
  await click('开始体验');
@@ -60,6 +60,7 @@ async page => {
  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'tablet map has no horizontal overflow');
  return {checks:checks.length,result:'passed',details:checks};
 }
+
 
 
 

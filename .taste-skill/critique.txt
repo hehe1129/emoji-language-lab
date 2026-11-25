@@ -1,0 +1,12 @@
+ROUND 2
+Seen in one second: 用 Emoji 表达命题，点开始进入一张分支地图。
+Idea (one sentence): 五个命题成为可探索的图形语言地图，图形像磁性字片组成句子。
+Live thing: 可拖放的 Emoji 句子编辑器和公共作品历史。
+Layout words by section: welcome=图形句子邀请 / map=双支线图谱 / editor=词库与排列画布 / review=五行个人表达
+Scores: design 7.5 · usability 8 · creativity 7 · content 8 → overall 7.6
+Caps applied: 此为用户明确要求的应用/展览互动界面，不适用营销页的四张照片要求；数字为实际关卡导航。
+Top three problems (most visible first), each with the screenshot it shows in and the fix:
+1. 第一轮平板标题三行：已让平板隐藏侧栏，并扩大画布，现为两行。
+2. 第一轮字体声明名与实际字重不符：已自托管 400/500/600 并使用正确字体名。
+3. 首轮自动地图/回顾截图捕获过早：需等待素材与入场动画稳定，再截取审查。
+Remaining: 实体摄像头、展馆距离和现场光照未实测。开始页大标题和展览留白为用户场景所需。

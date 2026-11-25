@@ -42,7 +42,10 @@ MediaPipe 模型、WASM 和 JS 自托管，视频与关键点仅在浏览器本�
 
 ```text
 src/config.ts             命题、素材 ID、上限、前置关系、地图坐标
-src/main.tsx              页面流程、地图、作品浏览、编辑、确认和回顾
+src/main.tsx              页面流程、地图、作品浏览、确认和回顾
+src/navigation.ts         导航状态
+src/ui/Editor.tsx         独立 Emoji 编辑器
+src/ui/Emoji.tsx          素材与有序作品呈现
 src/data/session.ts       匿名会话、草稿与待确认提交
 src/data/api.ts           公共 API 与明确标示的本地演示适配
 src/input/rules.ts        鼠标/手势共用的插入、换序和删除
